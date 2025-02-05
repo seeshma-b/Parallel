@@ -1,5 +1,7 @@
 all:
-	g++ -o mergeSort seq-mergeSort.cpp
+	make
+run:
+	./mergeSort 1000
 
 clean:
-	rm -f merge_sort
+	make clean
