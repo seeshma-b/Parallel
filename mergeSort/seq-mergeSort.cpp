@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 
 using namespace std;
 
@@ -61,6 +62,10 @@ int main(int argc, char* argv[]) {
     double time_taken = double(end - start) / CLOCKS_PER_SEC;
     cout << "Array Size: " << size << " | Time Taken: " << time_taken << " seconds" << endl;
 //pls work
+std::ofstream outfile("results.txt", std::ios::app);
+outfile << size << " " << time_taken << endl;
+outfile.close();
+
     delete[] arr;
     return 0;
 }
