@@ -41,7 +41,7 @@ std::vector<std::string> fetchNeighbors(const std::string& node) {
         if (res != CURLE_OK) {
             std::cerr << "CURL Error: " << curl_easy_strerror(res) << std::endl;
         } else {
-            // parse JSON response
+            // parse JSON outputs
             rapidjson::Document doc;
             doc.Parse(response.c_str());
 
@@ -79,7 +79,7 @@ void BFS_Crawler(const std::string& startNode, int depthLimit) {
             for (const auto& neighbor : neighbors) {
                 if (visited.find(neighbor) == visited.end()) {
                     visited.insert(neighbor);
-                    q.push({neighbor, depth + 1});  // ✅ Push with incremented depth
+                    q.push({neighbor, depth + 1}); 
                 }
             }
         }        
