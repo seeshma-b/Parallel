@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++17 -O2 -lcurl -pthread
+CXXFLAGS=-std=c++17 -O2 -lcurl -pthread -I$(HOME)/rapidjson/include
 
 all: sequential parallel
 
