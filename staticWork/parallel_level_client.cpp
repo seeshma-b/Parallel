@@ -25,7 +25,10 @@ struct ParseException : std::runtime_error, rapidjson::ParseResult {
         rapidjson::ParseResult(code, offset) {}
 };
 
-#define RAPIDJSON_PARSE_ERROR_NORETURN(code, offset)     throw ParseException(code, #code, offset)
+#ifndef RAPIDJSON_PARSE_ERROR_NORETURN
+#define RAPIDJSON_PARSE_ERROR_NORETURN(code, offset) \
+    throw ParseException(code, #code, offset)
+#endif
 
 string url_encode(CURL* curl, string input) {
     char* out = curl_easy_escape(curl, input.c_str(), input.size());
