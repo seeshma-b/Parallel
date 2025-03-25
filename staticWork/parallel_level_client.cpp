@@ -21,6 +21,8 @@ struct ParseException : std::runtime_error, rapidjson::ParseResult {
 
 #include <rapidjson/document.h>
 #include <chrono>
+#include <thread>  //for std::thread
+#include <mutex>   // for std::mutexx
 
 using namespace std;
 using namespace rapidjson;
@@ -102,34 +104,49 @@ vector<string> get_neighbors(const string& json_str) {
 }
 
 // BFS Traversal Function
-std::mutex mtx;
-int max_threads = 8;
+vector<vector<string>> bfs(CURL* curl, const string& start, int depth) {
+    vector<vector<string>> levels;
+    unordered_set<string> visited;
+    mutex mtx;
+    const int MAX_THREADS = 8;
 
-int num_nodes = levels[d].size();
-int num_threads = std::min(max_threads, num_nodes);
-int chunk_size = (num_nodes + num_threads - 1) / num_threads;
+    levels.push_back({start});
+    visited.insert(start);
 
-std::vector<std::thread> threads;
+    for (int d = 0; d < depth; d++) {
+        if (debug)
+            cout << "starting level: " << d << "\n";
+        levels.push_back({});
+        vector<thread> threads;
 
-for (int t = 0; t < num_threads; ++t) {
-    int start = t * chunk_size;
-    int end = std::min((t + 1) * chunk_size, num_nodes);
-
-    threads.emplace_back([&, start, end]() {
-        for (int i = start; i < end; ++i) {
-            const std::string& node = levels[d][i];
-            auto neighbors = get_neighbors(fetch_neighbors(curl, node));
-            for (const auto& neighbor : neighbors) {
-                std::lock_guard<std::mutex> lock(mtx);
-                if (visited.insert(neighbor).second) {
-                    levels[d + 1].push_back(neighbor);
+        int num_nodes = levels[d].size();
+        int num_threads = min(MAX_THREADS, num_nodes);
+        int chunk_size = (num_nodes + num_threads - 1) / num_threads;
+        for (int t = 0; t < num_threads; ++t) {
+            int start_idx = t * chunk_size;
+            int end_idx = min((t + 1) * chunk_size, num_nodes);
+            threads.emplace_back([&, start_idx, end_idx]() {
+                for (int i = start_idx; i < end_idx; ++i) {
+                    const string& node = levels[d][i];
+                    try {
+                        if (debug)
+                            cout << "Thread " << t << " expanding: " << node << "\n";
+                        for (const auto& neighbor : get_neighbors(fetch_neighbors(curl, node))) {
+                            lock_guard<mutex> lock(mtx);
+                            if (visited.insert(neighbor).second) {
+                                levels[d + 1].push_back(neighbor);
+                            }
+                        }
+                    } catch (const ParseException& e) {
+                        cerr << "Error fetching neighbors of: " << node << endl;
+                    }
                 }
-            }
+            });
         }
-    });
+        for (auto& t : threads) t.join();
+    }
+    return levels;
 }
-
-for (auto& t : threads) t.join();
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
