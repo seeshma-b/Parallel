@@ -102,38 +102,34 @@ vector<string> get_neighbors(const string& json_str) {
 }
 
 // BFS Traversal Function
-vector<vector<string>> bfs(CURL* curl, const string& start, int depth) {
-  vector<vector<string>> levels;
-  unordered_set<string> visited;
-  
-  levels.push_back({start});
-  visited.insert(start);
+std::mutex mtx;
+int max_threads = 8;
 
-  for (int d = 0;  d < depth; d++) {
-    if (debug)
-      std::cout<<"starting level: "<<d<<"\n";
-    levels.push_back({});
-    for (string& s : levels[d]) {
-      try {
-	if (debug)
-	  std::cout<<"Trying to expand"<<s<<"\n";
-	for (const auto& neighbor : get_neighbors(fetch_neighbors(curl, s))) {
-	  if (debug)
-	    std::cout<<"neighbor "<<neighbor<<"\n";
-	  if (!visited.count(neighbor)) {
-	    visited.insert(neighbor);
-	    levels[d+1].push_back(neighbor);
-	  }
-	}
-      } catch (const ParseException& e) {
-	std::cerr<<"Error while fetching neighbors of: "<<s<<std::endl;
-	throw e;
-      }
-    }
-  }
-  
-  return levels;
+int num_nodes = levels[d].size();
+int num_threads = std::min(max_threads, num_nodes);
+int chunk_size = (num_nodes + num_threads - 1) / num_threads;
+
+std::vector<std::thread> threads;
+
+for (int t = 0; t < num_threads; ++t) {
+    int start = t * chunk_size;
+    int end = std::min((t + 1) * chunk_size, num_nodes);
+
+    threads.emplace_back([&, start, end]() {
+        for (int i = start; i < end; ++i) {
+            const std::string& node = levels[d][i];
+            auto neighbors = get_neighbors(fetch_neighbors(curl, node));
+            for (const auto& neighbor : neighbors) {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (visited.insert(neighbor).second) {
+                    levels[d + 1].push_back(neighbor);
+                }
+            }
+        }
+    });
 }
+
+for (auto& t : threads) t.join();
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
