@@ -107,17 +107,23 @@ vector<vector<string>> bfs(CURL* curl, const string& start, int depth) {
         int chunk_size = (num_nodes + num_threads - 1) / num_threads;
 	    
         for (int t = 0; t < num_threads; ++t) {
-            int start_idx = t * chunk_size;
-            int end_idx = min((t + 1) * chunk_size, num_nodes);
-
-            threads.emplace_back([&, start_idx, end_idx]() {
+            threads.emplace_back([&, t]() {
+                CURL* local_curl = curl_easy_init();
+                if (!local_curl) {
+                    cerr << "Thread " << t << " failed to initialize CURL." << endl;
+                    return;
+                }
+        
+                int start_idx = t * chunk_size;
+                int end_idx = min((t + 1) * chunk_size, num_nodes);
+        
                 for (int i = start_idx; i < end_idx; ++i) {
                     const string& node = levels[d][i];
                     try {
                         if (debug)
                             cout << "Thread " << t << " expanding: " << node << "\n";
-
-                        for (const auto& neighbor : get_neighbors(fetch_neighbors(curl, node))) {
+        
+                        for (const auto& neighbor : get_neighbors(fetch_neighbors(local_curl, node))) {
                             lock_guard<mutex> lock(mtx);
                             if (visited.insert(neighbor).second) {
                                 levels[d + 1].push_back(neighbor);
@@ -127,8 +133,11 @@ vector<vector<string>> bfs(CURL* curl, const string& start, int depth) {
                         cerr << "Error fetching neighbors of: " << node << endl;
                     }
                 }
+        
+                curl_easy_cleanup(local_curl);
             });
         }
+        
         for (auto& t : threads) t.join();
     }
     return levels;
