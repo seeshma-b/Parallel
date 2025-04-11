@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -O2 -std=c++11 -fopenmp
 TARGET = nbody
-SRC = src/nbody.cpp
+SRC = nbody.cpp
 
 all: $(TARGET)
 

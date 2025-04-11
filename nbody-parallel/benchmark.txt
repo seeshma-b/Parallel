@@ -1,0 +1,32 @@
+# Benchmark/finals for cluster n github
+# Parallel N-Body
+---
+
+Solar System Simulation (planet, dt=200, 5,000,000 steps)
+- sequential (1 thread): 211.44 seconds
+- parallel (8 threads): 115.74 seconds
+
+---
+
+Random 100 Particles (dt=1, 10,000 steps)
+- sequential (1 thread): 0.69 seconds
+- parallel (8 threads): 7.45 seconds
+
+---
+
+Random 1000 Particles (dt=1, 10,000 steps)
+- sequential (1 thread): 61.58 seconds
+- parallel (8 threads): 28.18 seconds
+
+<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+# Comparisons
+
+For larger sims like the Solar System and 1000 particles, making it parallel helped reduce the overall runtimes.  
+For the solar System, the parallel version was about 1.8x faster.  
+For 1000 particles, the speedup was around 2.2x.
+
+HOWEVER, for small problems like 100 particles, using 8 threads actually made it slower.
+This is probably because the overhead of managing multiple threads was bigger than the work being done per thread.
+
+Ok so far the openmp gave noticeable speedups when the workload was large enough
