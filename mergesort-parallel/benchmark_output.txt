@@ -1,0 +1,15 @@
+rm -f mergesort_seq mergesort_parallel *.o
+g++ -std=c++11 -O3 -pthread -o mergesort_seq mergesort_seq_nocopy.cpp
+g++ -std=c++11 -O3 -pthread -o mergesort_parallel mergesort_parallel.cpp
+Running sequential for n=1000
+Running parallel for n=1000
+Running sequential for n=10000
+Running parallel for n=10000
+Running sequential for n=100000
+Running parallel for n=100000
+Running sequential for n=1000000
+Running parallel for n=1000000
+Running sequential for n=10000000
+Running parallel for n=10000000
+Running sequential for n=50000000
+Running parallel for n=50000000

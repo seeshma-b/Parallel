@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=mergesort_benchmark
+#SBATCH --partition=Centaurus
 #SBATCH --output=benchmark_output.txt
 #SBATCH --error=benchmark_error.txt
 #SBATCH --time=00:20:00
