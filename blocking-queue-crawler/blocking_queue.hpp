@@ -32,4 +32,8 @@ public:
         finished = true;
         cv.notify_all();
     }
+    bool empty() {
+        std::unique_lock<std::mutex> lock(m);
+        return q.empty();
+    }
 };

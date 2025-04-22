@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -I/usr/include
+CXXFLAGS = -std=c++17 -Wall -pthread -Irapidjson/include
 LIBS = -lcurl
 
 all: crawler

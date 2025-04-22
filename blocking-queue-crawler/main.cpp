@@ -9,7 +9,7 @@
 #include <thread>
 #include <chrono>
 #include <fstream>
-
+#include <atomic>
 using namespace std;
 using namespace rapidjson;
 
@@ -55,23 +55,33 @@ void worker(BlockingQueue<pair<string, int>>& queue,
             mutex& visited_mutex,
             mutex& output_mutex,
             vector<string>& output,
-            int max_depth) {
-    while (auto item = queue.pop()) {
+            int max_depth,
+            atomic<int>& active_threads) {
+    while (true) {
+        auto item = queue.pop();
+        if (!item.has_value()) break;
+
+        active_threads++;
         auto [node, depth] = *item;
-        if (depth > max_depth) continue;
 
         {
             lock_guard<mutex> lock(output_mutex);
             output.push_back(node);
         }
 
-        if (depth == max_depth) continue;
-        vector<string> neighbors = parse_neighbors(fetch_neighbors(node));
-        for (const auto& neighbor : neighbors) {
-            lock_guard<mutex> lock(visited_mutex);
-            if (visited.insert(neighbor).second)
-                queue.push({neighbor, depth + 1});
+        if (depth < max_depth) {
+            string json = fetch_neighbors(node);
+            vector<string> neighbors = parse_neighbors(json);
+
+            for (const auto& neighbor : neighbors) {
+                lock_guard<mutex> lock(visited_mutex);
+                if (visited.insert(neighbor).second) {
+                    queue.push({neighbor, depth + 1});
+                }
+            }
         }
+
+        active_threads--;
     }
 }
 
@@ -88,28 +98,40 @@ int main(int argc, char* argv[]) {
     unordered_set<string> visited;
     vector<string> output;
     mutex visited_mutex, output_mutex;
+    atomic<int> active_threads(0);
 
     visited.insert(start_node);
     queue.push({start_node, 0});
 
-    auto t_start = chrono::steady_clock::now();
+    auto start = chrono::steady_clock::now();
 
     vector<thread> threads;
-    for (int i = 0; i < MAX_THREADS; ++i)
-        threads.emplace_back(worker, ref(queue), ref(visited),
-                             ref(visited_mutex), ref(output_mutex), ref(output), depth);
+    for (int i = 0; i < MAX_THREADS; ++i) {
+        threads.emplace_back(worker, ref(queue), ref(visited), ref(visited_mutex),
+                             ref(output_mutex), ref(output), depth, ref(active_threads));
+    }
 
-    queue.done();
+    // Wait for queue to drain and no threads to be active
+    while (true) {
+        this_thread::sleep_for(chrono::milliseconds(100));
+        if (queue.empty() && active_threads.load() == 0) {
+            queue.done();
+            break;
+        }
+    }
+
     for (auto& t : threads) t.join();
 
-    auto t_end = chrono::steady_clock::now();
-    chrono::duration<double> elapsed = t_end - t_start;
+    auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed = end - start;
 
     for (const auto& node : output)
         cout << "- " << node << endl;
     cout << "Time to crawl: " << elapsed.count() << "s\n";
 
-    ofstream file("output/tomhanks_depth" + to_string(depth) + ".txt");
+    ofstream file("output/" + start_node + "_depth" + to_string(depth) + ".txt");
     for (const auto& node : output) file << node << "\n";
     file << "Time: " << elapsed.count() << "s\n";
+
+    return 0;
 }
