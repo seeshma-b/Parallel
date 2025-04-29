@@ -9,4 +9,4 @@
 
 module load cuda/12.4
 
-./nbody_gpu 10000 0.01 10 5 128
+./nbody_gpu 100000 0.01 10 5 128
