@@ -1,0 +1,7 @@
+# CUDA N-Body Simulation
+
+## Compile
+
+```bash
+make clean
+make
